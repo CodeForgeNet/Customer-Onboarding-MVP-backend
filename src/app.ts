@@ -12,6 +12,7 @@ import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 import adminRoutes from "./routes/admin.routes";
+import customerRoutes from "./routes/customer.routes";
 
 // Import middleware
 import {
@@ -53,6 +54,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", dashboardRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api", customerRoutes);
 
 // Error handling for undefined routes
 app.use((req, res) => {

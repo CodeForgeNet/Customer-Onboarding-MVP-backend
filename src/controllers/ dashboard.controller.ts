@@ -11,17 +11,19 @@ export const getDashboard = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
+    const brokerId = req.user.id;
+
     // Get total client count
-    const clientsCount = await prisma.user.count({
+    const clientsCount = await prisma.customer.count({
       where: {
-        role: "BROKER",
+        brokerId,
       },
     });
 
-    // Get recent signups (last 5 brokers)
-    const recentSignups = await prisma.user.findMany({
+    // Get recent signups (last 5 customers)
+    const recentSignups = await prisma.customer.findMany({
       where: {
-        role: "BROKER",
+        brokerId,
       },
       select: {
         id: true,
@@ -35,10 +37,26 @@ export const getDashboard = async (req: AuthRequest, res: Response) => {
       take: 5,
     });
 
+    // Get new customers this month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const newCustomersThisMonth = await prisma.customer.count({
+      where: {
+        brokerId,
+        createdAt: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+    });
+
     // Sample dashboard data
     const dashboardData = {
       clientsCount,
       recent: recentSignups,
+      newCustomersThisMonth,
     };
 
     return res.json(dashboardData);

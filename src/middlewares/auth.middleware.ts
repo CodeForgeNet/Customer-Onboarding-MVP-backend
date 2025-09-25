@@ -39,8 +39,10 @@ export const authMiddleware = async (
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
+      console.error("AuthMiddleware: Invalid token error:", error.message);
       return res.status(401).json({ error: "Invalid token" });
     }
+    console.error("AuthMiddleware: Internal server error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };

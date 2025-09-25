@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { handleServerError } from "../utils/errors";
@@ -32,6 +32,11 @@ export const register = async (req: Request, res: Response) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role, gstin: user.gstin },
     });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return res.status(409).json({ error: "Email or GSTIN already registered" });
+      }
+    }
     return handleServerError(res, error);
   }
 };
@@ -61,7 +66,7 @@ export const login = async (req: Request, res: Response) => {
     res.cookie("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Only use secure in production
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
     });
 
