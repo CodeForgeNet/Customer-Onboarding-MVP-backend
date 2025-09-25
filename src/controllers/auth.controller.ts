@@ -11,40 +11,26 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, gstin } = req.body;
 
-    // Check if user with email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    if (existingUser) {
-      return res.status(409).json({
-        error: "Email already in use",
-      });
-    }
-
-    // Hash the password
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-
-    // Create the user
-    const newUser = await prisma.user.create({
+    // Create new user
+    const user = await prisma.user.create({
       data: {
         name,
         email,
-        password: passwordHash,
-        // role defaults to BROKER as defined in the schema
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        // passwordHash is deliberately excluded
+        password: hashedPassword,
+        role,
+        gstin,
       },
     });
 
-    return res.status(201).json(newUser);
+    return res.status(201).json({
+      message: "User registered successfully",
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, gstin: user.gstin },
+    });
   } catch (error) {
     return handleServerError(res, error);
   }
@@ -67,24 +53,41 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate JWT token
-    const signOptions: jwt.SignOptions = {
-      expiresIn: 604800,
-    };
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, signOptions);
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET!, {
+      expiresIn: "7d",
+    });
 
-    // Return token and user profile (excluding passwordHash)
+    // Set httpOnly cookie
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Only use secure in production
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    });
+
+    // Return user profile (excluding passwordHash)
     const userProfile = {
       id: user.id,
       name: user.name,
       email: user.email,
+      gstin: user.gstin,
       role: user.role,
     };
 
     return res.status(200).json({
-      token,
       user: userProfile,
     });
   } catch (error) {
     return handleServerError(res, error);
   }
+};
+
+// Add a logout function
+export const logout = (req: Request, res: Response) => {
+  res.cookie("auth_token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+
+  return res.status(200).json({ message: "Logged out successfully" });
 };

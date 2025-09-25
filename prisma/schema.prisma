@@ -18,6 +18,7 @@ model User {
   name      String
   email     String   @unique
   password  String
+  gstin     String?  @unique
   role      Role     @default(BROKER)
   customers Customer[]
   createdAt DateTime @default(now())

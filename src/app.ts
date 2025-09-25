@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 
 // Load environment variables
 dotenv.config();
@@ -22,24 +23,25 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Security middleware
-app.use(helmet()); // Set various HTTP headers for security
+app.use(helmet());
 
 // CORS configuration
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
-    credentials: true,
+    credentials: true, // Important for cookies
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-app.use(express.json({ limit: "10kb" })); // Body parsing with size limit
+app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(cookieParser()); // Add cookie parser middleware
 
 // Apply rate limiting
-app.use(globalLimiter); // Global rate limiting
-app.use("/api/auth", authLimiter); // Stricter limits on auth routes
+// app.use(globalLimiter);
+app.use("/api/auth", authLimiter);
 
 // Routes
 app.get("/", (req, res) => {

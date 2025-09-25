@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login } from "../controllers/auth.controller";
+import { register, login, logout } from "../controllers/auth.controller";
 import {
   validateRequest,
   registerValidationSchema,
@@ -13,5 +13,8 @@ router.post("/register", validateRequest(registerValidationSchema), register);
 
 // POST /api/auth/login
 router.post("/login", validateRequest(loginValidationSchema), login);
+
+// POST /api/auth/logout
+router.post("/logout", logout);
 
 export default router;

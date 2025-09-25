@@ -12,14 +12,11 @@ export const authMiddleware = async (
   next: NextFunction
 ) => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
+    const token = req.cookies.auth_token;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Authorization token is required" });
+    if (!token) {
+      return res.status(401).json({ error: "Authentication token is required" });
     }
-
-    const token = authHeader.split(" ")[1];
 
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET) as {
