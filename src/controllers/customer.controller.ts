@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client"; // Import Role
 import { handleServerError } from "../utils/errors";
 import { AuthRequest } from "../types";
 
 const prisma = new PrismaClient();
 
+// ... (createCustomer and getAllCustomers functions remain the same)
 export const createCustomer = async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, gstin, brokerId: requestedBrokerId } = req.body; // Extract requestedBrokerId
@@ -73,14 +74,20 @@ export const updateCustomer = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, email, gstin } = req.body;
-    const brokerId = req.user?.id;
+    const user = req.user;
 
     const customer = await prisma.customer.findUnique({
       where: { id },
     });
 
-    if (!customer || customer.brokerId !== brokerId) {
+    // Check if customer exists and if the user is authorized to update it
+    if (!customer) {
       return res.status(404).json({ error: "Customer not found" });
+    }
+
+    // An admin can update any customer, a broker can only update their own
+    if (user?.role !== Role.ADMIN && customer.brokerId !== user?.id) {
+      return res.status(404).json({ error: "Customer not found or not authorized" });
     }
 
     const updatedCustomer = await prisma.customer.update({
@@ -101,14 +108,19 @@ export const updateCustomer = async (req: AuthRequest, res: Response) => {
 export const deleteCustomer = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const brokerId = req.user?.id;
+    const user = req.user;
 
     const customer = await prisma.customer.findUnique({
       where: { id },
     });
 
-    if (!customer || customer.brokerId !== brokerId) {
+    if (!customer) {
       return res.status(404).json({ error: "Customer not found" });
+    }
+
+    // An admin can delete any customer, a broker can only delete their own
+    if (user?.role !== Role.ADMIN && customer.brokerId !== user?.id) {
+      return res.status(404).json({ error: "Customer not found or not authorized" });
     }
 
     await prisma.customer.delete({
